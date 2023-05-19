@@ -1,0 +1,25 @@
+---
+nodes:
+    mainnet: 'https://opt-mainnet.g.alchemy.com/v2/XXXXXXXXXXXXXXXXXXX'
+    goerli:  'https://opt-goerli.g.alchemy.com/v2/XXXXXXXXXXXXXXXXXXX'
+    brownie: 'http://127.0.0.1:8545'
+
+etherscan:
+    mainnet: 'https://api-optimistic.etherscan.io/api?module=contract&action=getabi&address={}&apikey=XXXXXXXXXXXXXXXXXXX'
+    goerli: 'https://api-goerli-optimism.etherscan.io/api?module=contract&action=getabi&address={}&apikey=XXXXXXXXXXXXXXXXXXX'
+                
+resolver:
+    mainnet:  '0x95A6a3f44a70172E7d50a9e28c85Dfd712756B8C'
+    goerli:  '0x1d551351613a28d676BaC1Af157799e201279198'
+        
+pyth:
+    mainnet: 'https://xc-mainnet.pyth.network/api/latest_price_feeds?ids[]={}'
+    goerli: 'https://xc-testnet.pyth.network/api/latest_price_feeds?ids[]={}'
+    
+brownie:
+    mainnet: 'optimism-fork'
+    goerli: 'optimism-goerli-fork'
+
+mock:
+    mainnet: '0xf06b067E7748678c2c388aA4a9596b868b106D7B'
+    goerli: '0xa7d02bC7f0e21e5e69D5410568F5E1391b9c9F8a'
