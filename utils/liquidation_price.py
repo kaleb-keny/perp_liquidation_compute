@@ -19,7 +19,8 @@ class LiquidationPrice(Contracts):
     
     def fetch_position(self,accountAddress,ticker):
         proxyAddress = self.get_summary_value(ticker,'proxy_address')
-        positionData = self.brownieContracts["perps_data"].positionDetails(proxyAddress,accountAddress)
+        dataContract = self.fetch_contract_from_resolver("PerpsV2MarketData")
+        positionData = dataContract.functions.positionDetails(proxyAddress,accountAddress).call()
         labels       = ['inner','notionalValue','profitLoss','accruedFunding','remainingMargin','accessibleMargin','liquidationPrice','canLiquidate']
         position     = {label: data for data, label in zip(positionData,labels)}
         labels       = ['id','lastFundingIndex','margin','lastPrice','size']
@@ -39,10 +40,12 @@ class LiquidationPrice(Contracts):
                                                  ticker=ticker,
                                                  sizeDelta=sizeDelta,
                                                  pythPriceWithDecimals=pythPriceWithDecimals)
-
+    
         if position["status"] != 0:
             print("position status is not zero!, liquidation price cannot be accurately computed")
-        
+            position = self.fetch_position(accountAddress=accountAddress,ticker=ticker)
+            return {'liquidationPrice':position["liquidationPrice"]/1e18,'safePrice':position["liquidationPrice"]/1e18}
+                    
         if position["size"] == 0:
             print("no position to check")
             return None
