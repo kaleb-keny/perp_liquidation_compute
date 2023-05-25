@@ -48,7 +48,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
+    sizeDelta = int(args.s * 1e18) #adjust size for 18 decimal
+    
     lpc = LiquidationPrice(conf=conf,network=args.n)
-    lp  = lpc.fetch_exact_liquidation_price(accountAddress=args.a, ticker=args.t, sizeDelta=args.s)
+    lp  = lpc.fetch_exact_liquidation_price(accountAddress=args.a, ticker=args.t, sizeDelta=sizeDelta )
     print(lp)
 
