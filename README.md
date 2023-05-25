@@ -43,7 +43,7 @@ pyth:
 ```source myvenv/bin/activate```
 
 #### Install Requirements
-```install requirements```
+```pip install env/requirements.txt```
 
 #### Install Requirements
 
