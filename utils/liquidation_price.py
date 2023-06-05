@@ -81,7 +81,7 @@ class LiquidationPrice(Contracts):
         df["liquidation_premium"] = (position["size"]/1e18)**2 / (parameters["skewScale"] / 1e18) * df["prices"] * (parameters["liquidationPremiumMultiplier"] / 1e18)
 
         # net out against remaining margin
-        df["remaining_margin"] = df["remaining_margin"] - (df["liquidation_premium"] + df["flagging_fee"] - df["liquidation_fee"] + df["stakers_fee"] + df["p_l"]) 
+        df["remaining_margin"] = df["remaining_margin"] - (df["liquidation_premium"] + df["flagging_fee"] + df["liquidation_fee"] + df["stakers_fee"] + df["p_l"]) 
         
         if all(df.remaining_margin>0) or all(df.remaining_margin<0):
             print("liquidation price too wide to be calculated accurately")
@@ -120,7 +120,7 @@ class LiquidationPrice(Contracts):
     def fetch_chainlink_price(self,ticker):
         baseAsset         = self.get_summary_value(ticker,'baseAsset')
         contract = self.fetch_contract_from_resolver("ExchangeRates")
-        return contract.functions.rateForCurrency(baseAsset).call()/1e18
+        return contract.functions.rateForCurrency(baseAsset).call(block_identifier=blockNumber)/1e18
             
     def update_all_market_summaries(self):
         marketDataContract = self.fetch_contract_from_resolver('PerpsV2MarketData')
