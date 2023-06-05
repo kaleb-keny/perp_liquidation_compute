@@ -132,7 +132,7 @@ class BrownieInteractions(LiquidationPrice):
         self.perpSettingsOwner = bAccount[-1]
         
         #unlock the susd whale
-        bAccount.at("0x252cBDff917169775Be2b552eC9f6781aF95e7F6",force=True) 
+        bAccount.at(self.conf["susdWhale"][self.network],force=True) 
         self.susdWhale = bAccount[-1]
         
         #setup the contracts

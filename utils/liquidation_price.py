@@ -9,18 +9,18 @@ class LiquidationPrice(Contracts):
         super().__init__(conf=conf,network=network)
         self.update_all_market_summaries()
    
-    def fetch_post_trade_details(self,accountAddress,ticker,sizeDelta,pythPriceWithDecimals):
+    def fetch_post_trade_details(self,accountAddress,ticker,sizeDelta,pythPriceWithDecimals,blockNumber='latest'):
         postTradeDetailsAbi = '[{ "constant": true, "inputs": [ { "internalType": "int256", "name": "sizeDelta", "type": "int256" }, { "internalType": "uint256", "name": "tradePrice", "type": "uint256" }, { "internalType": "enum IPerpsV2MarketBaseTypes.OrderType", "name": "orderType", "type": "uint8" }, { "internalType": "address", "name": "sender", "type": "address" } ], "name": "postTradeDetails", "outputs": [ { "internalType": "uint256", "name": "margin", "type": "uint256" }, { "internalType": "int256", "name": "size", "type": "int256" }, { "internalType": "uint256", "name": "price", "type": "uint256" }, { "internalType": "uint256", "name": "liqPrice", "type": "uint256" }, { "internalType": "uint256", "name": "fee", "type": "uint256" }, { "internalType": "enum IPerpsV2MarketBaseTypes.Status", "name": "status", "type": "uint8" } ], "payable": false, "stateMutability": "view", "type": "function" }]'
         proxyAddress  = self.get_summary_value(ticker,'proxy_address')
         proxyContract = self.w3.eth.contract(address=proxyAddress,abi=postTradeDetailsAbi)
-        outputs       = proxyContract.functions.postTradeDetails(sizeDelta,pythPriceWithDecimals,2,accountAddress).call()
+        outputs       = proxyContract.functions.postTradeDetails(sizeDelta,pythPriceWithDecimals,2,accountAddress).call(block_identifier=blockNumber)
         labels        = ['remainingMargin','size','lastPrice','liquidationPrice','fee','status']
         return {label: output for label, output in zip(labels,outputs)}
     
-    def fetch_position(self,accountAddress,ticker):
+    def fetch_position(self,accountAddress,ticker,blockNumber='latest'):
         proxyAddress = self.get_summary_value(ticker,'proxy_address')
         dataContract = self.fetch_contract_from_resolver("PerpsV2MarketData")
-        positionData = dataContract.functions.positionDetails(proxyAddress,accountAddress).call()
+        positionData = dataContract.functions.positionDetails(proxyAddress,accountAddress).call(block_identifier=blockNumber)
         labels       = ['inner','notionalValue','profitLoss','accruedFunding','remainingMargin','accessibleMargin','liquidationPrice','canLiquidate']
         position     = {label: data for data, label in zip(positionData,labels)}
         labels       = ['id','lastFundingIndex','margin','lastPrice','size']
@@ -44,7 +44,6 @@ class LiquidationPrice(Contracts):
         if position["status"] != 0:
             print("position status is not zero!, liquidation price cannot be accurately computed")
             position = self.fetch_position(accountAddress=accountAddress,ticker=ticker)
-            return {'liquidationPrice':position["liquidationPrice"]/1e18,'safePrice':position["liquidationPrice"]/1e18}
                     
         if position["size"] == 0:
             print("no position to check")
@@ -117,7 +116,7 @@ class LiquidationPrice(Contracts):
         output = requests.get(self.conf["pyth"][self.network].format(self.w3.toHex(priceFeedId))).json()[0]
         return int(output["price"]["price"]) * 10 ** output["price"]["expo"]
     
-    def fetch_chainlink_price(self,ticker):
+    def fetch_chainlink_price(self,ticker,blockNumber='latest'):
         baseAsset         = self.get_summary_value(ticker,'baseAsset')
         contract = self.fetch_contract_from_resolver("ExchangeRates")
         return contract.functions.rateForCurrency(baseAsset).call(block_identifier=blockNumber)/1e18
