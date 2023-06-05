@@ -50,11 +50,12 @@ class LiquidationPrice(Contracts):
             print("no position to check")
             return None
         
-        parameters   = self.fetch_market_parmeters(ticker)        
-        perpSettings = self.fetch_contract_from_resolver('PerpsV2MarketSettings')
-        minKeeperFee = perpSettings.functions.keeperLiquidationFee().call()
-        maxKeeperFee = perpSettings.functions.maxKeeperFee().call()
-        liquidationFeeRatio = perpSettings.functions.liquidationFeeRatio().call()
+        parameters           = self.fetch_market_parmeters(ticker)        
+        perpSettings         = self.fetch_contract_from_resolver('PerpsV2MarketSettings')
+        minKeeperFee         = perpSettings.functions.minKeeperFee().call()
+        maxKeeperFee         = perpSettings.functions.maxKeeperFee().call()
+        liquidationFeeRatio  = perpSettings.functions.liquidationFeeRatio().call()
+        keeperLiquidationFee = perpSettings.functions.keeperLiquidationFee().call()
                 
         df = pd.DataFrame(data=range(-500,500,1), columns=['prices'])
         df["prices"] = (1 + df["prices"] / 1e4) * position["liquidationPrice"] / 1e18
@@ -64,10 +65,14 @@ class LiquidationPrice(Contracts):
         
         #P&L
         df["p_l"] = ((position["lastPrice"] / 1e18)- df["prices"]) * (position["size"] / 1e18)
-                
-        # remove keeper fees min then max
-        df["keeper_fee"] = df["prices"].apply(lambda p: max(p * abs(position["size"] / 1e18) * (liquidationFeeRatio/1e18), (minKeeperFee/1e18)))
-        df["keeper_fee"] = df["keeper_fee"].apply(lambda x: min(x, maxKeeperFee/1e18))
+        
+        # compute flagging fee
+        df["flagging_fee"] = df["prices"].apply(lambda p: p * abs(position["size"] / 1e18) * (liquidationFeeRatio/1e18))
+        df["flagging_fee"] = df["flagging_fee"].apply(lambda x: max(min(x, maxKeeperFee/1e18),minKeeperFee/1e18))
+        df["flagging_fee"] = df["flagging_fee"]
+        
+        #set aside the liquidation fee
+        df["liquidation_fee"] = keeperLiquidationFee/1e18        
         
         # remove fee that goes to debt pool
         df["stakers_fee"] = df["prices"] * abs(position["size"]/1e18) * (parameters["liquidationBufferRatio"]/1e18)
@@ -76,7 +81,7 @@ class LiquidationPrice(Contracts):
         df["liquidation_premium"] = (position["size"]/1e18)**2 / (parameters["skewScale"] / 1e18) * df["prices"] * (parameters["liquidationPremiumMultiplier"] / 1e18)
 
         # net out against remaining margin
-        df["remaining_margin"] = df["remaining_margin"] - (df["liquidation_premium"] + df["keeper_fee"] + df["stakers_fee"] + df["p_l"]) 
+        df["remaining_margin"] = df["remaining_margin"] - (df["liquidation_premium"] + df["flagging_fee"] - df["liquidation_fee"] + df["stakers_fee"] + df["p_l"]) 
         
         if all(df.remaining_margin>0) or all(df.remaining_margin<0):
             print("liquidation price too wide to be calculated accurately")
